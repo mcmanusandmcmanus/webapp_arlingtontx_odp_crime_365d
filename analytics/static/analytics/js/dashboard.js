@@ -75,7 +75,7 @@ async function fetchJSON(url) {
 function getSequentialColor(value, min, max) {
   if (max === min) return 'rgba(37, 99, 235, 0.3)';
   const ratio = (value - min) / (max - min);
-  const hue = 200 - ratio * 120; // blue to green
+  const hue = 200 - ratio * 120;
   return `hsl(${hue}, 70%, ${65 - ratio * 25}%)`;
 }
 
@@ -88,6 +88,8 @@ function getDivergingColor(value, maxAbs) {
     : `hsl(210, 80%, ${lightness}%)`;
 }
 
+let calendarHeatmapInstance;
+
 async function loadCalendarHeatmap(heatType) {
   const url = new URL('/api/heatmaps/calendar/', window.location.origin);
   url.searchParams.set('heat_type', heatType);
@@ -96,130 +98,244 @@ async function loadCalendarHeatmap(heatType) {
 }
 
 function renderCalendarHeatmap(payload, heatType) {
-  const container = document.getElementById('calendarHeatmapGrid');
   const legend = document.getElementById('calendarHeatmapLegend');
-  if (!container || !legend) return;
-  container.innerHTML = '';
-  legend.textContent = '';
+  if (!legend) return;
   if (!payload.data || payload.data.length === 0) {
-    container.textContent = 'No data available yet.';
+    legend.textContent = 'No data available yet.';
     return;
   }
-  const values = payload.data.map((point) =>
-    typeof point.value === 'number' ? point.value : point.count,
-  );
+
+  const dataset = payload.data.map((point) => ({
+    date: new Date(point.date),
+    value: typeof point.value === 'number' ? point.value : point.count,
+    count: point.count,
+  }));
+  const values = dataset.map((d) => d.value);
   const min = Math.min(...values);
   const max = Math.max(...values);
   const maxAbs = Math.max(...values.map((v) => Math.abs(v)));
-  container.style.gridTemplateColumns = `repeat(${payload.weeks || 52}, 14px)`;
-  payload.data.forEach((point) => {
-    const value = typeof point.value === 'number' ? point.value : point.count;
-    const cell = document.createElement('div');
-    cell.className = 'heatmap-cell';
-    cell.style.gridColumnStart = point.week_index + 1;
-    cell.style.gridRowStart = (point.weekday_number || 0) + 1;
-    if (heatType === 'count' || heatType === 'pct_group') {
-      cell.style.backgroundColor = getSequentialColor(value, min, max);
-    } else {
-      cell.style.backgroundColor = getDivergingColor(value, maxAbs);
-    }
-    cell.title = `${point.date}\nValue: ${value}\nCount: ${point.count}`;
-    container.appendChild(cell);
+  if (!calendarHeatmapInstance) {
+    calendarHeatmapInstance = new CalHeatmap();
+  }
+  calendarHeatmapInstance.paint({
+    itemSelector: '#calendarHeatmapGrid',
+    theme: 'light',
+    animationDuration: 400,
+    data: {
+      source: dataset,
+      x: (d) => d.date,
+      y: (d) => d.value,
+    },
+    date: {
+      start: dataset[0].date,
+      end: dataset[dataset.length - 1].date,
+    },
+    range: Math.ceil(dataset.length / 7),
+    domain: {
+      type: 'month',
+      gutter: 4,
+      label: { text: 'MMM yyyy', position: 'top' },
+    },
+    subDomain: {
+      type: 'day',
+      width: 16,
+      height: 16,
+      radius: 4,
+      gutter: 3,
+      label: (value) => value.toLocaleDateString(undefined, { day: 'numeric' }),
+    },
+    scale: {
+      color: heatType === 'count' || heatType === 'pct_group'
+        ? {
+            type: 'linear',
+            domain: [min, max],
+            range: ['#bae6fd', '#0284c7'],
+          }
+        : {
+            type: 'linear',
+            domain: [-maxAbs, 0, maxAbs],
+            range: ['#f43f5e', '#e2e8f0', '#0ea5e9'],
+          },
+    },
+    tooltip: {
+      text: (timestamp, value) => {
+        const day = new Date(timestamp);
+        return `${day.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}<br>
+            Value: ${value ?? 0}`;
+      },
+    },
   });
   legend.textContent = `Range ${payload.start_date} → ${payload.end_date} (${payload.data.length} days)`;
 }
 
+let timeOfWeekChart;
+
 async function loadTimeOfWeekHeatmap() {
   const payload = await fetchJSON('/api/heatmaps/time-of-week/?window=28d');
-  const container = document.getElementById('timeOfWeekHeatmap');
-  if (!container) return;
-  container.innerHTML = '';
-  if (!payload.matrix) {
-    container.textContent = 'Awaiting data.';
-    return;
-  }
-  const table = document.createElement('table');
-  table.className = 'heatmap-table';
-  const thead = document.createElement('thead');
-  const headerRow = document.createElement('tr');
-  headerRow.innerHTML = '<th>Day</th>' + payload.hour_labels.map((hour) => `<th>${hour}</th>`).join('');
-  thead.appendChild(headerRow);
-  table.appendChild(thead);
-  const tbody = document.createElement('tbody');
+  const canvas = document.getElementById('timeOfWeekHeatmapCanvas');
+  if (!canvas || !payload.matrix) return;
+  const ctx = canvas.getContext('2d');
+  const data = [];
   const flatValues = payload.matrix.flat();
-  const maxValue = Math.max(...flatValues);
-  payload.weekday_labels.forEach((label, rowIndex) => {
-    const tr = document.createElement('tr');
-    const th = document.createElement('th');
-    th.textContent = label;
-    tr.appendChild(th);
-    payload.matrix[rowIndex].forEach((value) => {
-      const td = document.createElement('td');
-      td.style.backgroundColor = getSequentialColor(value, 0, maxValue || 1);
-      td.title = `${label} hour ${payload.hour_labels[td.cellIndex - 1] || ''}: ${value}`;
-      td.textContent = value || '';
-      tr.appendChild(td);
+  const maxValue = Math.max(...flatValues, 1);
+  payload.weekday_labels.forEach((day, rowIndex) => {
+    payload.matrix[rowIndex].forEach((value, colIndex) => {
+      data.push({
+        x: payload.hour_labels[colIndex],
+        y: day,
+        v: value,
+      });
     });
-    tbody.appendChild(tr);
   });
-  table.appendChild(tbody);
-  container.appendChild(table);
+  if (timeOfWeekChart) {
+    timeOfWeekChart.destroy();
+  }
+  timeOfWeekChart = new Chart(ctx, {
+    type: 'matrix',
+    data: {
+      datasets: [
+        {
+          label: 'Incidents',
+          data,
+          backgroundColor: (context) => {
+            const value = context.raw.v || 0;
+            return getSequentialColor(value, 0, maxValue);
+          },
+          width: () => 18,
+          height: () => 18,
+          borderWidth: 0,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        tooltip: {
+          callbacks: {
+            title: (items) => {
+              const item = items[0];
+              return `${item.raw.y}, hour ${item.raw.x}`;
+            },
+            label: (item) => `Incidents: ${item.raw.v}`,
+          },
+        },
+        legend: { display: false },
+      },
+      scales: {
+        x: {
+          type: 'category',
+          labels: payload.hour_labels,
+          grid: { display: false },
+          title: { display: true, text: 'Hour of Day' },
+        },
+        y: {
+          type: 'category',
+          labels: payload.weekday_labels,
+          grid: { display: false },
+          reverse: true,
+          title: { display: true, text: 'Day of Week' },
+        },
+      },
+    },
+  });
 }
+
+let poissonHeatmapChart;
 
 async function loadPoissonHeatmap(unit, windowLength) {
   const url = new URL('/api/heatmaps/poisson/', window.location.origin);
   url.searchParams.set('unit', unit);
   url.searchParams.set('window_length', windowLength);
   const payload = await fetchJSON(url.toString());
-  const container = document.getElementById('poissonHeatmapTable');
-  if (!container) return;
-  container.innerHTML = '';
-  if (!payload.windows || payload.windows.length === 0) {
-    container.textContent = 'No windows available.';
-    return;
-  }
-  const latestWindow = payload.windows[payload.windows.length - 1];
-  const rows = [...latestWindow.rows].sort(
-    (a, b) => Math.abs(b.z) - Math.abs(a.z),
-  );
-  const topRows = rows.slice(0, 10);
-  const table = document.createElement('table');
-  table.className = 'heatmap-table';
-  table.innerHTML = `
-    <thead>
-      <tr>
-        <th>${payload.unit === 'beat' ? 'Beat' : 'District'}</th>
-        <th>Current</th>
-        <th>Previous</th>
-        <th>Z</th>
-      </tr>
-    </thead>
-  `;
-  const tbody = document.createElement('tbody');
-  const maxAbs = Math.max(...topRows.map((row) => Math.abs(row.z)), 0);
-  topRows.forEach((row) => {
-    const tr = document.createElement('tr');
-    const nameTd = document.createElement('td');
-    nameTd.textContent = row.unit;
-    tr.appendChild(nameTd);
-    const currentTd = document.createElement('td');
-    currentTd.textContent = row.current;
-    tr.appendChild(currentTd);
-    const previousTd = document.createElement('td');
-    previousTd.textContent = row.past;
-    tr.appendChild(previousTd);
-    const zTd = document.createElement('td');
-    zTd.textContent = row.z.toFixed(2);
-    zTd.style.backgroundColor = getDivergingColor(row.z, maxAbs || 1);
-    tr.appendChild(zTd);
-    tbody.appendChild(tr);
+  const canvas = document.getElementById('poissonHeatmapCanvas');
+  const meta = document.getElementById('poissonHeatmapMeta');
+  if (!canvas || !payload.windows || payload.windows.length === 0) return;
+  const ctx = canvas.getContext('2d');
+  const windows = payload.windows.slice(-8);
+  const windowLabels = windows.map((w) => `W${w.id}`);
+  const unitSet = new Set();
+  windows.forEach((w) => w.rows.forEach((row) => unitSet.add(row.unit)));
+  const units = Array.from(unitSet).sort();
+  const data = [];
+  let maxAbs = 0;
+  windows.forEach((window, windowIndex) => {
+    units.forEach((unitName) => {
+      const row =
+        window.rows.find((r) => r.unit === unitName) ||
+        { current: 0, past: 0, z: 0 };
+      maxAbs = Math.max(maxAbs, Math.abs(row.z));
+      data.push({
+        x: windowLabels[windowIndex],
+        windowLabel: window.label,
+        y: unitName,
+        v: row.z,
+        current: row.current,
+        past: row.past,
+      });
+    });
   });
-  table.appendChild(tbody);
-  container.appendChild(table);
-  const meta = document.createElement('p');
-  meta.className = 'text-xs text-slate-500 mt-2';
-  meta.textContent = `Window ${latestWindow.label}`;
-  container.appendChild(meta);
+  if (poissonHeatmapChart) {
+    poissonHeatmapChart.destroy();
+  }
+  poissonHeatmapChart = new Chart(ctx, {
+    type: 'matrix',
+    data: {
+      datasets: [
+        {
+          label: 'Z-score',
+          data,
+          backgroundColor: (context) => {
+            const value = context.raw.v;
+            return getDivergingColor(value, maxAbs || 1);
+          },
+          borderWidth: 0,
+          width: () => 28,
+          height: () => 24,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        tooltip: {
+          callbacks: {
+            title: (items) => {
+              const raw = items[0].raw;
+              return `${raw.y} | ${raw.windowLabel}`;
+            },
+            label: (item) => {
+              const raw = item.raw;
+              return [
+                `Z: ${raw.v.toFixed(2)}`,
+                `Current: ${raw.current}`,
+                `Previous: ${raw.past}`,
+              ];
+            },
+          },
+        },
+        legend: { display: false },
+      },
+      scales: {
+        x: {
+          type: 'category',
+          labels: windowLabels,
+          grid: { display: false },
+          title: { display: true, text: 'Rolling Windows' },
+        },
+        y: {
+          type: 'category',
+          labels: units,
+          grid: { display: false },
+          title: { display: true, text: payload.unit === 'beat' ? 'Beat' : 'District' },
+        },
+      },
+    },
+  });
+  if (meta) {
+    meta.textContent = `Latest window: ${windows[windows.length - 1].label} • unit: ${payload.unit}`;
+  }
 }
 
 function initHeatmaps() {
