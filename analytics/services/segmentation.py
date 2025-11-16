@@ -101,14 +101,17 @@ def get_hourly_matrix(window_key: str = "28d") -> Dict[str, Iterable]:
     window = windows[window_key]
     qs = Incident.objects.filter(incident_date__range=(window.start, window.end))
     rows = (
-        qs.annotate(hour=ExtractHour("incident_datetime"), weekday=ExtractWeekDay("incident_datetime"))
-        .values("hour", "weekday")
+        qs.annotate(
+            annotated_hour=ExtractHour("incident_datetime"),
+            annotated_weekday=ExtractWeekDay("incident_datetime"),
+        )
+        .values("annotated_hour", "annotated_weekday")
         .annotate(total=Count("id"))
     )
     matrix = [[0 for _ in range(24)] for _ in range(7)]
     for row in rows:
-        hour = row["hour"] or 0
-        weekday_index = ((row["weekday"] or 1) + 5) % 7  # Convert Sunday=1 to Monday=0 ordering
+        hour = row["annotated_hour"] or 0
+        weekday_index = ((row["annotated_weekday"] or 1) + 5) % 7  # Convert Sunday=1 to Monday=0 ordering
         matrix[weekday_index][hour] = row["total"]
     return {
         "weekday_labels": DEFAULT_WEEKDAY_ORDER,
