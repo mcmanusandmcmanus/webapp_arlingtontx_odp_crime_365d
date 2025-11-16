@@ -1,0 +1,41 @@
+{% extends "analytics/base.html" %}
+
+{% block content %}
+<section class="card mb-6">
+    <h2 class="text-xl font-semibold mb-2">Importer Checklist</h2>
+    <ol class="list-decimal pl-6 space-y-2 text-sm text-slate-600">
+        {% for item in instructions %}
+            <li>{{ item }}</li>
+        {% endfor %}
+    </ol>
+</section>
+
+<section class="card">
+    <h3 class="text-lg font-semibold mb-4">Upload / Paste Source Data</h3>
+    <form method="post" enctype="multipart/form-data" class="space-y-4">
+        {% csrf_token %}
+        <div>
+            <label class="block text-sm font-semibold">Importer Passcode</label>
+            {{ form.passcode }}
+        </div>
+        <div>
+            <label class="block text-sm font-semibold">Data Date</label>
+            {{ form.data_date }}
+        </div>
+        <div>
+            <label class="block text-sm font-semibold">Upload CSV / Excel</label>
+            {{ form.data_file }}
+        </div>
+        <div>
+            <label class="block text-sm font-semibold">Notes</label>
+            {{ form.notes }}
+        </div>
+        <div>
+            <label class="block text-sm font-semibold">Pasted Rows</label>
+            {{ form.pasted_rows }}
+        </div>
+        <button class="px-4 py-2 bg-emerald-600 text-white rounded">Parse & Preview</button>
+    </form>
+    <p class="text-xs text-slate-500 mt-4">Preview + commit actions will be wired in once file staging endpoints are complete.</p>
+</section>
+{% endblock %}

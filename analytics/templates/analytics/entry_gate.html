@@ -1,0 +1,22 @@
+{% extends "analytics/base.html" %}
+
+{% block content %}
+<div class="max-w-xl mx-auto card">
+    <h2 class="text-xl font-semibold mb-4">COO Dashboard Entry Gate</h2>
+    <p class="text-sm text-slate-600 mb-4">
+        Provide the shared passcode distributed to Arlington leadership to access the municipal-grade dashboards.
+    </p>
+    <form method="post" class="space-y-4">
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+        <div>
+            <label class="block text-sm font-semibold text-slate-700 mb-1">{{ form.passcode.label }}</label>
+            {{ form.passcode }}
+            {% if form.passcode.errors %}
+                <p class="text-rose-600 text-xs mt-1">{{ form.passcode.errors|join:", " }}</p>
+            {% endif %}
+        </div>
+        <button class="px-4 py-2 bg-slate-900 text-white rounded hover:bg-slate-800">Enter</button>
+    </form>
+</div>
+{% endblock %}

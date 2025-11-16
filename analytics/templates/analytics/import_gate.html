@@ -1,0 +1,16 @@
+{% extends "analytics/base.html" %}
+
+{% block content %}
+<div class="max-w-xl mx-auto card">
+    <h2 class="text-2xl font-semibold mb-2">Import Console Access</h2>
+    <p class="text-sm text-slate-600 mb-4">Only the rotating import team should enter this passcode.</p>
+    <form method="post" class="space-y-4">
+        {% csrf_token %}
+        <div>
+            <label class="block text-sm font-semibold text-slate-700 mb-1">{{ form.passcode.label }}</label>
+            {{ form.passcode }}
+        </div>
+        <button class="px-4 py-2 bg-amber-600 text-white rounded hover:bg-amber-500">Authenticate</button>
+    </form>
+</div>
+{% endblock %}

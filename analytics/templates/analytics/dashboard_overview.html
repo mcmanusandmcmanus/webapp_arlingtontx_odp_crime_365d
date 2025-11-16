@@ -1,0 +1,69 @@
+{% extends "analytics/base.html" %}
+
+{% block content %}
+<section class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+    {% for card in kpi_cards %}
+        <div class="card">
+            <p class="text-xs uppercase tracking-wide text-slate-500">{{ card.title }}</p>
+            <p class="kpi-value text-slate-900 my-2">{{ card.current|floatformat:0 }}</p>
+            <div class="flex items-center gap-3">
+                <span class="badge {% if card.absolute_change >= 0 %}badge-up{% else %}badge-down{% endif %}">
+                    {% if card.absolute_change >= 0 %}+{% endif %}{{ card.pct_change }}%
+                </span>
+                <p class="text-sm text-slate-600">{{ card.narrative }}</p>
+            </div>
+        </div>
+    {% empty %}
+        <div class="col-span-3 text-center text-slate-500 card">
+            Data not yet loaded. Run <code>python manage.py import_incidents</code>.
+        </div>
+    {% endfor %}
+</section>
+
+<section class="card mb-8">
+    <div class="flex items-center justify-between mb-4">
+        <div>
+            <h2 class="text-xl font-semibold">Time-Window Strategy</h2>
+            <p class="text-sm text-slate-600">Comparing COO horizons vs prior periods.</p>
+        </div>
+        <span class="text-xs uppercase tracking-wide text-slate-400">7 | 14 | 28 | 91 | 182 | 365</span>
+    </div>
+    <canvas id="windowChart" height="120"></canvas>
+</section>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+    <section class="card">
+        <h2 class="text-lg font-semibold mb-2">Calendar Heatmap (365 days)</h2>
+        <p class="text-sm text-slate-600 mb-4">Hover-ready calendar grid delivered via Chart.js/JS plugin (placeholder dataset bound via JSON).</p>
+        <pre class="bg-slate-900 text-teal-200 text-xs p-3 rounded">{{ calendar_payload }}</pre>
+    </section>
+    <section class="card">
+        <h2 class="text-lg font-semibold mb-2">24 x 7 Pattern Radar (28-day window)</h2>
+        <p class="text-sm text-slate-600 mb-4">Front-end heatmap consumes the matrix payload shown below.</p>
+        <pre class="bg-slate-900 text-amber-200 text-xs p-3 rounded">{{ hourly_matrix }}</pre>
+    </section>
+</div>
+
+<section class="card">
+    <h2 class="text-xl font-semibold mb-2">Narrative Snapshots</h2>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {% for key, data in window_summary.items %}
+            <div class="bg-slate-50 border border-slate-200 rounded p-3">
+                <p class="text-xs uppercase text-slate-500">{{ data.label }}</p>
+                <p class="text-2xl font-semibold text-slate-900">{{ data.current }}</p>
+                <p class="text-sm text-slate-600">
+                    Prev {{ data.previous }} · Δ {{ data.absolute_change }} ({{ data.percent_change }}%)
+                </p>
+            </div>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+{{ block.super }}
+<script>
+    const summaryPayload = {{ chart_payload|safe }};
+    DashboardCharts.renderBarChart('windowChart', summaryPayload);
+</script>
+{% endblock %}

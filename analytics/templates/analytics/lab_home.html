@@ -1,0 +1,85 @@
+{% extends "analytics/base.html" %}
+
+{% block content %}
+<section class="card mb-8">
+    <h2 class="text-2xl font-semibold mb-2">Data Science Lab</h2>
+    <p class="text-sm text-slate-600">Netflix-grade rigor applied to municipal crime analytics.</p>
+</section>
+
+<section class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+    {% for stage in stages %}
+        <a href="{% url 'analytics:lab_stage_detail' stage.slug %}" class="card block hover:border-teal-400">
+            <p class="text-xs uppercase text-slate-500">{{ stage.title }}</p>
+            <p class="text-sm text-slate-600 mt-2">{{ stage.description }}</p>
+            <ul class="text-xs text-slate-500 mt-3 list-disc pl-4 space-y-1">
+                {% for deliverable in stage.deliverables %}
+                    <li>{{ deliverable }}</li>
+                {% endfor %}
+            </ul>
+        </a>
+    {% endfor %}
+</section>
+
+<section class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div class="card">
+        <h3 class="text-lg font-semibold mb-3">Recent Model Experiments</h3>
+        <table class="min-w-full text-sm">
+            <thead class="text-slate-500 uppercase text-xs tracking-wide">
+                <tr>
+                    <th class="text-left py-2">Model</th>
+                    <th class="text-left py-2">Algorithm</th>
+                    <th class="text-left py-2">Stage</th>
+                    <th class="text-left py-2">Precision / Recall</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for run in recent_models %}
+                    <tr class="border-t border-slate-100">
+                        <td class="py-2">{{ run.model_name }}</td>
+                        <td class="py-2">{{ run.algorithm }}</td>
+                        <td class="py-2">{{ run.get_stage_display }}</td>
+                        <td class="py-2 text-xs">
+                            {% with metrics=run.metrics %}
+                                P: {{ metrics.precision|default:"–" }} · R: {{ metrics.recall|default:"–" }}
+                            {% endwith %}
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="4" class="text-center py-4 text-slate-500">Model runs will appear after experiments are logged.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="card">
+        <h3 class="text-lg font-semibold mb-3">Weekly Evaluation Log</h3>
+        <table class="min-w-full text-sm">
+            <thead class="text-slate-500 uppercase text-xs tracking-wide">
+                <tr>
+                    <th class="text-left py-2">Week</th>
+                    <th class="text-left py-2">Audience</th>
+                    <th class="text-left py-2">Metric</th>
+                    <th class="text-left py-2">Δ</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for metric in evaluations %}
+                    <tr class="border-t border-slate-100">
+                        <td class="py-2">{{ metric.week_of }}</td>
+                        <td class="py-2">{{ metric.audience }}</td>
+                        <td class="py-2">{{ metric.metric_name }}</td>
+                        <td class="py-2">
+                            {{ metric.expected_value|default:"–" }} → {{ metric.observed_value|default:"–" }}
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="4" class="text-center py-4 text-slate-500">No evaluation records yet.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}

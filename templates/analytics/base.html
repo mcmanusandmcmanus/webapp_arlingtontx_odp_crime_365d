@@ -1,0 +1,48 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ page_title|default:'Arlington ODP Crime 365' }}</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@3.4.14/dist/tailwind.min.css">
+    <link rel="stylesheet" href="{% static 'analytics/css/app.css' %}">
+</head>
+<body class="bg-slate-100 text-slate-900 min-h-screen flex flex-col">
+    <header class="bg-slate-900 text-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+            <div>
+                <p class="uppercase text-xs tracking-wide text-slate-300">Arlington TX • Open Data Project</p>
+                <h1 class="text-2xl font-semibold">COO Crime Intelligence Lab</h1>
+            </div>
+            <nav class="space-x-4 text-sm">
+                <a href="{% url 'analytics:dashboard_overview' %}" class="hover:text-teal-300 {% if request.resolver_match.url_name == 'dashboard_overview' %}text-teal-300{% endif %}">Overview</a>
+                <a href="{% url 'analytics:dashboard_segments' %}" class="hover:text-teal-300 {% if request.resolver_match.url_name == 'dashboard_segments' %}text-teal-300{% endif %}">Segments</a>
+                <a href="{% url 'analytics:data_science_lab' %}" class="hover:text-teal-300 {% if 'lab' in request.resolver_match.url_name %}text-teal-300{% endif %}">Data Science Lab</a>
+                <a href="{% url 'analytics:import_console' %}" class="hover:text-teal-300 {% if request.resolver_match.url_name == 'import_console' %}text-teal-300{% endif %}">Import Console</a>
+            </nav>
+        </div>
+    </header>
+    <main class="flex-1 max-w-7xl mx-auto w-full px-4 py-8">
+        {% if messages %}
+            <div class="space-y-2">
+                {% for message in messages %}
+                    <div class="p-3 rounded border {% if message.tags == 'success' %}bg-emerald-50 border-emerald-200 text-emerald-900{% elif message.tags == 'error' %}bg-rose-50 border-rose-200 text-rose-900{% else %}bg-slate-50 border-slate-200 text-slate-900{% endif %}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+        {% block content %}{% endblock %}
+    </main>
+    <footer class="bg-white border-t border-slate-200 py-4">
+        <div class="max-w-7xl mx-auto px-4 text-sm text-slate-500 flex justify-between">
+            <span>© {% now "Y" %} Arlington TX ODP Crime 365 · MIT License</span>
+            <span>Powered by Django · Tailwind · Chart.js</span>
+        </div>
+    </footer>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+    <script src="{% static 'analytics/js/dashboard.js' %}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

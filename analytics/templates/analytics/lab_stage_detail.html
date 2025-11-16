@@ -1,0 +1,15 @@
+{% extends "analytics/base.html" %}
+
+{% block content %}
+<section class="card">
+    <p class="text-xs uppercase text-slate-500">{{ stage.title }}</p>
+    <p class="text-lg font-semibold mt-2 mb-4">{{ stage.description }}</p>
+    <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-500 mb-2">Deliverables</h3>
+    <ul class="list-disc pl-5 space-y-1 text-sm text-slate-600 mb-6">
+        {% for item in stage.deliverables %}
+            <li>{{ item }}</li>
+        {% endfor %}
+    </ul>
+    <a href="{% url 'analytics:data_science_lab' %}" class="text-sm text-indigo-600">← Back to Lab</a>
+</section>
+{% endblock %}

@@ -1,0 +1,43 @@
+{% extends "analytics/base.html" %}
+
+{% block content %}
+<div class="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
+    <div>
+        <p class="text-xs uppercase tracking-wide text-slate-500">{{ segment_type|title }} Detail</p>
+        <h2 class="text-3xl font-semibold">{{ segment_value }}</h2>
+    </div>
+    <a href="{% url 'analytics:dashboard_segments' %}" class="text-sm text-indigo-600">← Back to Segments</a>
+</div>
+
+<section class="card mb-6">
+    <h3 class="text-lg font-semibold mb-2">365-day Daily Trend</h3>
+    <canvas id="detailLineChart" height="140"></canvas>
+</section>
+
+<section class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+    {% for key, data in segment_window_summary.items %}
+        <div class="card">
+            <p class="text-xs uppercase text-slate-500">{{ data.label }}</p>
+            <p class="text-3xl font-semibold">{{ data.current }}</p>
+            <p class="text-sm text-slate-600">Prev {{ data.previous }} · Δ {{ data.absolute_change }} ({{ data.percent_change }}%)</p>
+        </div>
+    {% endfor %}
+</section>
+
+<section class="card">
+    <h3 class="text-lg font-semibold mb-3">Narrative Notes</h3>
+    <ul class="list-disc pl-6 text-sm text-slate-600 space-y-2">
+        <li>Use this section to capture the operational storyline for the selected beat/offense.</li>
+        <li>Window cards surface period-over-period deltas to anchor command staff briefings.</li>
+        <li>Daily trend lines identify sudden surges requiring deployment adjustments.</li>
+    </ul>
+</section>
+{% endblock %}
+
+{% block scripts %}
+{{ block.super }}
+<script>
+    const detailPayload = {{ series_payload|safe }};
+    DashboardCharts.renderLineChart('detailLineChart', detailPayload);
+</script>
+{% endblock %}

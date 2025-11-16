@@ -1,0 +1,76 @@
+{% extends "analytics/base.html" %}
+
+{% block content %}
+<section class="card mb-6">
+    <h2 class="text-xl font-semibold mb-4">Top Segments</h2>
+    <form method="get" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+            <label class="block text-sm font-semibold mb-1">Time window</label>
+            {{ form.window }}
+        </div>
+        <div>
+            <label class="block text-sm font-semibold mb-1">Segment field</label>
+            {{ form.segment_field }}
+        </div>
+        <div class="flex items-end">
+            <button class="px-4 py-2 bg-slate-900 text-white rounded">Update</button>
+        </div>
+    </form>
+</section>
+
+<section class="card mb-6">
+    <div class="flex items-center justify-between mb-4">
+        <div>
+            <h3 class="text-lg font-semibold">Volume vs Baseline</h3>
+            <p class="text-sm text-slate-600">Current vs previous period for the selected window.</p>
+        </div>
+    </div>
+    <canvas id="segmentsBarChart" height="100"></canvas>
+</section>
+
+<section class="card">
+    <h3 class="text-lg font-semibold mb-3">Story Table</h3>
+    <div class="overflow-x-auto">
+        <table class="min-w-full text-sm">
+            <thead class="text-slate-500 uppercase tracking-wide">
+                <tr>
+                    <th class="text-left py-2">Segment</th>
+                    <th class="text-right py-2">Current</th>
+                    <th class="text-right py-2">Previous</th>
+                    <th class="text-right py-2">Δ %</th>
+                    <th class="text-right py-2">Share</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in table_rows %}
+                    <tr class="border-t border-slate-100 hover:bg-slate-50">
+                        <td class="py-2 font-semibold">{{ row.segment }}</td>
+                        <td class="py-2 text-right">{{ row.current_count }}</td>
+                        <td class="py-2 text-right">{{ row.previous_count }}</td>
+                        <td class="py-2 text-right {% if row.pct_change >= 0 %}text-emerald-600{% else %}text-rose-600{% endif %}">
+                            {% if row.pct_change >= 0 %}+{% endif %}{{ row.pct_change }}%
+                        </td>
+                        <td class="py-2 text-right">{{ row.share }}%</td>
+                        <td class="py-2 text-right">
+                            <a href="{% url 'analytics:dashboard_detail' segment_key row.segment %}" class="text-indigo-600 text-xs">Detail →</a>
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center text-slate-500 py-4">Awaiting imported data.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+{{ block.super }}
+<script>
+    const segmentPayload = {{ bar_payload|safe }};
+    DashboardCharts.renderBarChart('segmentsBarChart', segmentPayload);
+</script>
+{% endblock %}

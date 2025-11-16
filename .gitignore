@@ -1,0 +1,26 @@
+.venv/
+env/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.sqlite3
+db.sqlite3
+staticfiles/
+media/
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.log
+
+# Data artifacts
+data/*.csv
+!data/crime_365d.csv
+data/**/*.xlsx
+data_entry_forms_*/**
+
+# Build artifacts
+/tmp/
+/dist/
+/build/
