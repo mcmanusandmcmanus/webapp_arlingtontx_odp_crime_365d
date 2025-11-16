@@ -1,0 +1,65 @@
+<section class="glass-panel divide-y divide-slate-900/40">
+  <div class="pb-4 space-y-2">
+    <p class="text-[0.65rem] uppercase tracking-[0.2em] text-slate-500">Command focus</p>
+    <h2 class="text-lg font-semibold text-white">COO Watchfloor</h2>
+    <p class="text-sm text-slate-400">Live intelligence feed powered by Arlington open data. Adjust the global window to sync every module.</p>
+  </div>
+  <div class="pt-4" x-data="{ horizon: '28d' }" x-init="document.addEventListener('dashboard:horizon', (evt) => { horizon = evt.detail.horizon; })">
+    <p class="text-[0.65rem] uppercase tracking-[0.3em] text-slate-500 mb-2">Operating horizon</p>
+    <p class="text-xl font-semibold text-emerald-300" x-text="horizon.toUpperCase()"></p>
+    <p class="text-xs text-slate-500">Applies to overview heatmaps, anomaly scan, and export queues.</p>
+  </div>
+</section>
+
+<section class="glass-panel space-y-4">
+  <div class="flex items-center justify-between">
+    <h3 class="text-sm font-semibold text-white">Navigation</h3>
+    <span class="text-[0.65rem] tracking-[0.3em] text-slate-500">HTMX</span>
+  </div>
+  <nav class="space-y-2 text-sm">
+    <a href="{% url 'analytics:dashboard_overview' %}" class="sidebar-link {% if request.resolver_match.url_name == 'dashboard_overview' %}sidebar-link-active{% endif %}">Executive Overview</a>
+    <a href="{% url 'analytics:dashboard_segments' %}" class="sidebar-link {% if request.resolver_match.url_name == 'dashboard_segments' %}sidebar-link-active{% endif %}">Segments & Storytelling</a>
+    <a href="{% url 'analytics:data_science_lab' %}" class="sidebar-link {% if 'lab' in request.resolver_match.url_name %}sidebar-link-active{% endif %}">Data Science Lab</a>
+    <a href="{% url 'analytics:import_console' %}" class="sidebar-link {% if request.resolver_match.url_name == 'import_console' %}sidebar-link-active{% endif %}">Import Console</a>
+  </nav>
+  <div class="text-[0.75rem] text-slate-400 space-y-1">
+    <p class="font-semibold text-slate-200">Data Quality Gate</p>
+    <p>Ensure latest CSV drop is loaded via Import Console. Missing data produces amber alerts in KPI tiles.</p>
+  </div>
+</section>
+
+{% if window_summary %}
+<section class="glass-panel space-y-4">
+  <div class="flex items-center justify-between">
+    <h3 class="text-sm font-semibold text-white">Window diagnostics</h3>
+    <span class="text-[0.7rem] text-slate-500">Live</span>
+  </div>
+  <div class="space-y-3">
+    {% for key, data in window_summary.items|slice:":3" %}
+      <div class="border border-slate-800/80 rounded-xl p-3 bg-slate-900/40">
+        <p class="text-xs uppercase tracking-wide text-slate-500">{{ data.label }}</p>
+        <p class="text-lg font-semibold text-slate-100">{{ data.current|floatformat:0 }}</p>
+        <p class="text-xs text-slate-400">
+          Prev {{ data.previous|floatformat:0 }}
+          <span class="{% if data.percent_change >= 0 %}text-emerald-300{% else %}text-rose-300{% endif %} font-semibold">
+            {% if data.percent_change >= 0 %}+{% endif %}{{ data.percent_change }}%
+          </span>
+        </p>
+      </div>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+<section class="glass-panel space-y-3">
+  <div>
+    <h3 class="text-sm font-semibold text-white">Share insights</h3>
+    <p class="text-xs text-slate-400">Export highlights after each import cycle for the command staff briefing.</p>
+  </div>
+  <div class="flex flex-wrap gap-2">
+    <button type="button" class="chip">PDF Brief</button>
+    <button type="button" class="chip">CSV Export</button>
+    <button type="button" class="chip">Slack Push</button>
+  </div>
+  <p class="text-[0.7rem] text-slate-500">Integrations are driven via HTMX endpoints for quick wins before deeper workflow automation.</p>
+</section>

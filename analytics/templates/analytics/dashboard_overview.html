@@ -1,108 +1,221 @@
 {% extends "analytics/base.html" %}
+{% load static %}
 
 {% block content %}
-<section class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-    {% for card in kpi_cards %}
-        <div class="card">
-            <p class="text-xs uppercase tracking-wide text-slate-500">{{ card.title }}</p>
-            <p class="kpi-value text-slate-900 my-2">{{ card.current|floatformat:0 }}</p>
-            <div class="flex items-center gap-3">
-                <span class="badge {% if card.absolute_change >= 0 %}badge-up{% else %}badge-down{% endif %}">
-                    {% if card.absolute_change >= 0 %}+{% endif %}{{ card.pct_change }}%
-                </span>
-                <p class="text-sm text-slate-600">{{ card.narrative }}</p>
-            </div>
+<section class="hero-panel grid gap-8 lg:grid-cols-[minmax(0,2fr),minmax(0,1fr)]">
+  <div class="space-y-5">
+    <span class="hero-pill">Arlington TX &middot; Open Data</span>
+    <div>
+      <h2 class="text-3xl md:text-4xl font-semibold text-white tracking-tight">COO Crime Intelligence Lab</h2>
+      <p class="text-slate-300 text-lg mt-3 max-w-3xl">
+        Executive-ready situational awareness blending KPIs, cadence heatmaps, and anomaly detection for the command staff briefing.
+      </p>
+    </div>
+    <div class="flex flex-wrap gap-3">
+      <a href="{% url 'analytics:dashboard_segments' %}" class="px-5 py-2 rounded-full bg-emerald-400/90 text-slate-900 font-semibold text-sm shadow-lg shadow-emerald-500/30">
+        View Segment Storyboards
+      </a>
+      <a href="{% url 'analytics:import_console' %}" class="px-5 py-2 rounded-full border border-slate-600 text-sm text-slate-100 hover:border-slate-400 transition">
+        Sync Latest Data Drop
+      </a>
+    </div>
+    <div class="grid gap-3 sm:grid-cols-2">
+      {% for key, window in window_summary.items %}
+        {% if forloop.counter <= 2 %}
+        <div class="stat-pill">
+          <p class="text-xs uppercase tracking-[0.3em] text-slate-500 mb-1">{{ window.label }}</p>
+          <p class="text-2xl font-semibold text-white">{{ window.current|floatformat:0 }}</p>
+          <p class="text-sm text-slate-400">
+            Prev {{ window.previous|floatformat:0 }}
+            <span class="{% if window.percent_change >= 0 %}trend-positive{% else %}trend-negative{% endif %} font-semibold">
+              {% if window.percent_change >= 0 %}+{% endif %}{{ window.percent_change }}%
+            </span>
+          </p>
         </div>
-    {% empty %}
-        <div class="col-span-3 text-center text-slate-500 card">
-            Data not yet loaded. Run <code>python manage.py import_incidents</code>.
+        {% endif %}
+      {% empty %}
+        <div class="stat-pill col-span-2">
+          <p class="text-sm text-slate-400">Load incidents to activate cadence intelligence.</p>
         </div>
-    {% endfor %}
+      {% endfor %}
+    </div>
+  </div>
+  <div class="glass-panel space-y-4">
+    <div>
+      <p class="text-xs uppercase tracking-[0.3em] text-slate-500">Signal monitor</p>
+      <p class="text-sm text-slate-400">Top KPI windows tracked for the COO briefing deck.</p>
+    </div>
+    <ul class="space-y-3">
+      {% for card in kpi_cards|slice:":3" %}
+        <li class="flex items-center justify-between border border-slate-800/60 rounded-xl px-3 py-2 bg-slate-950/30">
+          <div>
+            <p class="text-xs uppercase tracking-[0.2em] text-slate-500">{{ card.title }}</p>
+            <p class="text-lg font-semibold text-white">{{ card.current|floatformat:0 }}</p>
+          </div>
+          <span class="text-sm font-semibold {% if card.absolute_change >= 0 %}trend-positive{% else %}trend-negative{% endif %}">
+            {% if card.absolute_change >= 0 %}+{% endif %}{{ card.pct_change }}%
+          </span>
+        </li>
+      {% empty %}
+        <li class="text-sm text-slate-500">Run <code>python manage.py import_incidents</code> to populate KPIs.</li>
+      {% endfor %}
+    </ul>
+  </div>
 </section>
 
-<section class="card mb-8">
-    <div class="flex items-center justify-between mb-4">
+<section class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+  {% for card in kpi_cards %}
+    <article class="metric-card space-y-3">
+      <h3>{{ card.title }}</h3>
+      <p class="metric-value">{{ card.current|floatformat:0 }}</p>
+      <p class="text-xs text-slate-400">{{ card.narrative }}</p>
+      <p class="text-sm font-semibold {% if card.absolute_change >= 0 %}trend-positive{% else %}trend-negative{% endif %}">
+        {% if card.absolute_change >= 0 %}+{% endif %}{{ card.pct_change }}%
+      </p>
+    </article>
+  {% empty %}
+    <article class="metric-card col-span-4 text-slate-400 text-sm">
+      Data not yet loaded. Run <code>python manage.py import_incidents</code>.
+    </article>
+  {% endfor %}
+</section>
+
+<section class="grid gap-6 lg:grid-cols-3">
+  <article class="chart-card lg:col-span-2 space-y-4">
+    <div class="flex items-center justify-between">
+      <div>
+        <p class="text-xs uppercase tracking-[0.3em] text-slate-500">Window strategy</p>
+        <h2>Current vs previous comparative volumes</h2>
+      </div>
+      <span class="text-xs text-slate-500">7D &middot; 14D &middot; 28D &middot; 91D &middot; 182D &middot; 365D</span>
+    </div>
+    <canvas id="windowComparisonChart" height="260"></canvas>
+    <p class="text-xs text-slate-500">The goal: highlight which windows are driving +/- movement ahead of the weekly stand-up.</p>
+  </article>
+  <article class="chart-card" x-data="windowSummaryPanel()">
+    <div class="flex items-center justify-between">
+      <div>
+        <p class="text-xs uppercase tracking-[0.3em] text-slate-500">Narrative composer</p>
+        <h2>Window-by-window storyline</h2>
+      </div>
+    </div>
+    <div class="flex flex-wrap gap-2 mt-4">
+      <template x-for="key in keys" :key="key">
+        <button type="button"
+                class="chip"
+                :class="active === key ? 'border-emerald-400 text-emerald-200' : ''"
+                x-text="key.toUpperCase()"
+                @click="setActive(key)"></button>
+      </template>
+    </div>
+    <div class="narrative-card mt-4" x-show="active" x-transition>
+      <template x-if="active">
         <div>
-            <h2 class="text-xl font-semibold">Time-Window Strategy</h2>
-            <p class="text-sm text-slate-600">Comparing COO horizons vs prior periods.</p>
+          <p class="text-xs uppercase tracking-[0.3em] text-slate-500" x-text="metric(active).label"></p>
+          <p class="text-3xl font-semibold text-white" x-text="metric(active).current?.toLocaleString() ?? '0'"></p>
+          <p class="text-sm text-slate-400 mt-2">
+            <span x-text="'Previous ' + (metric(active).previous ?? 0).toLocaleString()"></span>
+            <span class="font-semibold"
+                  :class="(metric(active).percent_change ?? 0) >= 0 ? 'trend-positive' : 'trend-negative'">
+              <span x-text="((metric(active).percent_change ?? 0) >= 0 ? '+' : '') + (metric(active).percent_change ?? 0) + '%'"></span>
+            </span>
+          </p>
+          <p class="text-sm text-slate-300 mt-3" x-text="generateNarrative(active)"></p>
         </div>
-        <span class="text-xs uppercase tracking-wide text-slate-400">7 | 14 | 28 | 91 | 182 | 365</span>
+      </template>
     </div>
-    <canvas id="windowChart" height="120"></canvas>
+  </article>
 </section>
 
-<section class="card mb-8">
-    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
-        <div>
-            <h2 class="text-lg font-semibold">Calendar Heat Lab (365 days)</h2>
-            <p class="text-sm text-slate-600">GitHub-style cadence overview with selectable heat types.</p>
-        </div>
-        <label class="text-sm text-slate-600 flex items-center gap-2">
-            Heat type
-            <select id="calendarHeatType" class="form-input w-auto">
-                <option value="count">Daily Count</option>
-                <option value="z_daily">Z vs Year Baseline</option>
-                <option value="pct_group">Category %</option>
-                <option value="weekday_delta">Weekday Delta</option>
-            </select>
-        </label>
+<section class="grid gap-6 xl:grid-cols-2">
+  <article class="chart-card space-y-4">
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+      <div>
+        <p class="text-xs uppercase tracking-[0.3em] text-slate-500">Calendar heat lab</p>
+        <h2>GitHub-style cadence, selectable heat modes</h2>
+      </div>
+      <label class="text-xs text-slate-400 flex items-center gap-2">
+        Heat type
+        <select id="calendarHeatType" class="bg-slate-900/60 border border-slate-700 rounded-lg px-3 py-2 text-sm">
+          <option value="count">Daily Count</option>
+          <option value="z_daily">Z vs Year Baseline</option>
+          <option value="pct_group">Category %</option>
+          <option value="weekday_delta">Weekday Delta</option>
+        </select>
+      </label>
     </div>
-    <div id="calendarHeatmapLegend" class="text-xs text-slate-500 mb-2"></div>
-    <div id="calendarHeatmapGrid" class="calendar-grid"></div>
+    <div id="calendarHeatmapLegend" class="calendar-legend"></div>
+    <div id="calendarHeatmapGrid" class="min-h-[220px]"></div>
+  </article>
+  <article class="chart-card space-y-4">
+    <div>
+      <p class="text-xs uppercase tracking-[0.3em] text-slate-500">24A-7 heat signature</p>
+      <h2>Weekday x hour matrix (28-day window)</h2>
+    </div>
+    <canvas id="timeOfWeekHeatmapCanvas" class="mt-2" height="320"></canvas>
+  </article>
 </section>
 
-<section class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-    <section class="card">
-        <div class="flex flex-col gap-2 mb-3">
-            <h2 class="text-lg font-semibold">24×7 Pattern Radar (28 days)</h2>
-            <p class="text-sm text-slate-600">Row = weekday, column = hour. Darker cells show higher incident counts.</p>
-        </div>
-        <canvas id="timeOfWeekHeatmapCanvas" height="280"></canvas>
-    </section>
-    <section class="card">
-        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-3">
-            <div>
-                <h2 class="text-lg font-semibold">Poisson Z Change Detector</h2>
-                <p class="text-sm text-slate-600">Highlights the beats/districts with the largest current vs past shifts.</p>
-            </div>
-            <div class="flex gap-2">
-                <select id="poissonUnitSelect" class="form-input w-auto text-sm">
-                    <option value="beat">Beat</option>
-                    <option value="district">District</option>
-                </select>
-                <select id="poissonWindowSelect" class="form-input w-auto text-sm">
-                    <option value="28">28 days</option>
-                    <option value="14">14 days</option>
-                    <option value="91">91 days</option>
-                </select>
-            </div>
-        </div>
-        <canvas id="poissonHeatmapCanvas" height="320"></canvas>
-        <p id="poissonHeatmapMeta" class="text-xs text-slate-500 mt-2"></p>
-    </section>
-</section>
-
-<section class="card">
-    <h2 class="text-xl font-semibold mb-2">Narrative Snapshots</h2>
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {% for key, data in window_summary.items %}
-            <div class="bg-slate-50 border border-slate-200 rounded p-3">
-                <p class="text-xs uppercase text-slate-500">{{ data.label }}</p>
-                <p class="text-2xl font-semibold text-slate-900">{{ data.current }}</p>
-                <p class="text-sm text-slate-600">
-                    Prev {{ data.previous }} · Δ {{ data.absolute_change }} ({{ data.percent_change }}%)
-                </p>
-            </div>
-        {% endfor %}
+<section class="chart-card space-y-4">
+  <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+    <div>
+      <p class="text-xs uppercase tracking-[0.3em] text-slate-500">Poisson change detector</p>
+      <h2>Beat/district surges vs prior window</h2>
     </div>
+    <div class="flex gap-2">
+      <select id="poissonUnitSelect" class="bg-slate-900/60 border border-slate-700 rounded-lg px-3 py-2 text-sm">
+        <option value="beat">Beat</option>
+        <option value="district">District</option>
+      </select>
+      <select id="poissonWindowSelect" class="bg-slate-900/60 border border-slate-700 rounded-lg px-3 py-2 text-sm">
+        <option value="28">28 days</option>
+        <option value="14">14 days</option>
+        <option value="91">91 days</option>
+      </select>
+    </div>
+  </div>
+  <canvas id="poissonHeatmapCanvas" height="320"></canvas>
+  <p id="poissonHeatmapMeta" class="poisson-meta"></p>
 </section>
 {% endblock %}
 
 {% block scripts %}
 {{ block.super }}
+{{ chart_payload|json_script:"window-chart-data" }}
+{{ calendar_payload|json_script:"calendar-heatmap-data" }}
+{{ hourly_matrix|json_script:"hourly-matrix-data" }}
+{{ window_summary|json_script:"window-summary-data" }}
 <script>
-    const summaryPayload = {{ chart_payload|safe }};
-    DashboardCharts.renderBarChart('windowChart', summaryPayload);
-    DashboardCharts.initHeatmaps();
+  document.addEventListener("alpine:init", () => {
+    Alpine.data("windowSummaryPanel", () => {
+      const payload = CrimeDashboard.hydrateJsonScript("window-summary-data") || {};
+      const keys = Object.keys(payload);
+      return {
+        payload,
+        keys,
+        active: keys[0] || null,
+        setActive(key) {
+          this.active = key;
+        },
+        metric(key) {
+          return this.payload[key] || {};
+        },
+        generateNarrative(key) {
+          const metric = this.metric(key);
+          if (!metric.label) return "Awaiting data import.";
+          const direction = (metric.absolute_change ?? 0) >= 0 ? "increase" : "decline";
+          return `${metric.label}: ${metric.current ?? 0} this window, ${direction} of ${Math.abs(
+            metric.absolute_change ?? 0,
+          )} incidents (${metric.percent_change ?? 0}%).`;
+        },
+      };
+    });
+  });
+
+  CrimeDashboard.initOverview({
+    windowChart: CrimeDashboard.hydrateJsonScript("window-chart-data"),
+    calendarPayload: CrimeDashboard.hydrateJsonScript("calendar-heatmap-data"),
+    matrixPayload: CrimeDashboard.hydrateJsonScript("hourly-matrix-data"),
+  });
 </script>
 {% endblock %}

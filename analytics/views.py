@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from typing import Dict
 
 from django.conf import settings
 from django.contrib import messages
@@ -10,7 +11,7 @@ from django.shortcuts import redirect, render
 
 from . import forms
 from .models import EvaluationMetric, Incident, ModelRun
-from .services import baseline, segmentation, time_windows, heatmaps
+from .services import baseline, segmentation, time_windows, heatmaps, lab
 
 ENTRY_SESSION_KEY = "entry_passcode_verified"
 LAB_SESSION_KEY = "lab_passcode_verified"
@@ -194,13 +195,34 @@ def data_science_lab(request: HttpRequest) -> HttpResponse:
             {"form": form, "page_title": "Data Science Lab Passcode"},
         )
 
-    recent_models = ModelRun.objects.all()[:5]
-    evaluations = EvaluationMetric.objects.all()[:8]
+    eda_window = request.GET.get("eda_window", "91d")
+    evaluation_audience = request.GET.get("evaluation_audience") or None
+    evaluation_metric = request.GET.get("evaluation_metric") or None
+
+    eda_payload = lab.get_eda_payload(window_key=eda_window)
+    model_payload = lab.get_model_comparison()
+    evaluation_payload = lab.get_evaluation_payload(
+        audience=evaluation_audience,
+        metric_name=evaluation_metric,
+    )
+
     context = {
         "page_title": "Data Science Lab",
         "stages": LAB_STAGES,
-        "recent_models": recent_models,
-        "evaluations": evaluations,
+        "eda_window": eda_window,
+        "eda_payload_json": json.dumps(eda_payload),
+        "model_runs": model_payload["runs"],
+        "model_chart_json": json.dumps(model_payload["chart"]),
+        "champion_model": model_payload["champion"],
+        "stage_breakdown": model_payload["stage_breakdown"],
+        "evaluation_chart_json": json.dumps(evaluation_payload["chart"]),
+        "evaluation_records": evaluation_payload["records"],
+        "evaluation_summary": evaluation_payload["summary"],
+        "evaluation_audience": evaluation_audience or "",
+        "evaluation_metric": evaluation_metric or "",
+        "evaluation_audiences": evaluation_payload["audiences"],
+        "evaluation_metrics": evaluation_payload["metrics"],
+        "evaluation_records_limit": len(evaluation_payload["records"]),
     }
     return render(request, "analytics/lab_home.html", context)
 
@@ -215,9 +237,24 @@ def lab_stage_detail(request: HttpRequest, stage_slug: str) -> HttpResponse:
     if not stage:
         messages.error(request, "Unknown lab stage.")
         return redirect("analytics:data_science_lab")
+    stage_context: Dict[str, object] = {}
+    if stage_slug == "eda":
+        stage_context["eda_payload_json"] = json.dumps(lab.get_eda_payload())
+    elif stage_slug in {"feature-lab", "modeling"}:
+        model_payload = lab.get_model_comparison()
+        stage_context["model_chart_json"] = json.dumps(model_payload["chart"])
+        stage_context["model_runs"] = model_payload["runs"]
+        stage_context["champion_model"] = model_payload["champion"]
+    elif stage_slug == "evaluation":
+        evaluation_payload = lab.get_evaluation_payload()
+        stage_context["evaluation_chart_json"] = json.dumps(evaluation_payload["chart"])
+        stage_context["evaluation_records"] = evaluation_payload["records"]
+        stage_context["evaluation_summary"] = evaluation_payload["summary"]
+
     context = {
         "page_title": stage["title"],
         "stage": stage,
+        **stage_context,
     }
     return render(request, "analytics/lab_stage_detail.html", context)
 

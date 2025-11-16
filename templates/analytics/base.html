@@ -1,51 +1,109 @@
 {% load static %}
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ page_title|default:'Arlington ODP Crime 365' }}</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@3.4.14/dist/tailwind.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cal-heatmap@4.3.3/dist/cal-heatmap.css">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ page_title|default:"Arlington ODP Crime 365" }}</title>
+
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.12" defer></script>
+    <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+
+    <link rel="stylesheet" href="{% static 'analytics/css/cal-heatmap.min.css' %}">
     <link rel="stylesheet" href="{% static 'analytics/css/app.css' %}">
-</head>
-<body class="bg-slate-100 text-slate-900 min-h-screen flex flex-col">
-    <header class="bg-slate-900 text-white shadow-lg">
-        <div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+    {% block extra_head %}{% endblock %}
+  </head>
+  <body class="bg-slate-950 text-slate-50 antialiased selection:bg-emerald-400/30">
+    <div class="min-h-screen flex flex-col">
+      <header class="border-b border-slate-900/60 bg-slate-900/80 backdrop-blur">
+        <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+          <div class="flex items-center gap-3">
+            <div class="h-10 w-10 rounded-2xl bg-emerald-400/10 border border-emerald-400/30 flex items-center justify-center text-sm font-semibold text-emerald-300 tracking-tight">
+              CA
+            </div>
             <div>
-                <p class="uppercase text-xs tracking-wide text-slate-300">Arlington TX • Open Data Project</p>
-                <h1 class="text-2xl font-semibold">COO Crime Intelligence Lab</h1>
+              <p class="text-xs uppercase tracking-[0.2em] text-slate-400">Operational Insight</p>
+              <h1 class="text-base font-semibold leading-tight">Crime Analysis Dashboard</h1>
+              <p class="text-xs text-slate-500">Near-time. Open data. Command ready.</p>
             </div>
-            <nav class="space-x-4 text-sm">
-                <a href="{% url 'analytics:dashboard_overview' %}" class="hover:text-teal-300 {% if request.resolver_match.url_name == 'dashboard_overview' %}text-teal-300{% endif %}">Overview</a>
-                <a href="{% url 'analytics:dashboard_segments' %}" class="hover:text-teal-300 {% if request.resolver_match.url_name == 'dashboard_segments' %}text-teal-300{% endif %}">Segments</a>
-                <a href="{% url 'analytics:data_science_lab' %}" class="hover:text-teal-300 {% if 'lab' in request.resolver_match.url_name %}text-teal-300{% endif %}">Data Science Lab</a>
-                <a href="{% url 'analytics:import_console' %}" class="hover:text-teal-300 {% if request.resolver_match.url_name == 'import_console' %}text-teal-300{% endif %}">Import Console</a>
+          </div>
+          <div class="flex items-center gap-6">
+            <nav class="hidden md:flex items-center gap-4 text-xs font-semibold tracking-wide text-slate-400">
+              <a href="{% url 'analytics:dashboard_overview' %}"
+                 class="nav-link {% if request.resolver_match.url_name == 'dashboard_overview' %}nav-link-active{% endif %}">
+                Overview
+              </a>
+              <a href="{% url 'analytics:dashboard_segments' %}"
+                 class="nav-link {% if request.resolver_match.url_name == 'dashboard_segments' %}nav-link-active{% endif %}">
+                Segments
+              </a>
+              <a href="{% url 'analytics:data_science_lab' %}"
+                 class="nav-link {% if 'lab' in request.resolver_match.url_name %}nav-link-active{% endif %}">
+                Data Science Lab
+              </a>
+              <a href="{% url 'analytics:import_console' %}"
+                 class="nav-link {% if request.resolver_match.url_name == 'import_console' %}nav-link-active{% endif %}">
+                Import Console
+              </a>
             </nav>
-        </div>
-    </header>
-    <main class="flex-1 max-w-7xl mx-auto w-full px-4 py-8">
-        {% if messages %}
-            <div class="space-y-2">
-                {% for message in messages %}
-                    <div class="p-3 rounded border {% if message.tags == 'success' %}bg-emerald-50 border-emerald-200 text-emerald-900{% elif message.tags == 'error' %}bg-rose-50 border-rose-200 text-rose-900{% else %}bg-slate-50 border-slate-200 text-slate-900{% endif %}">
-                        {{ message }}
-                    </div>
-                {% endfor %}
+            <div x-data="{ horizon: '{{ default_horizon|default:"28d" }}' }" class="flex items-center gap-2 text-xs">
+              <span class="text-slate-500 hidden sm:inline">Time window</span>
+              <template x-for="h in ['7d','28d','91d','365d','ytd']" :key="h">
+                <button
+                  type="button"
+                  class="px-3 py-1 rounded-full border transition text-[0.7rem]"
+                  :class="horizon === h
+                    ? 'border-emerald-400 bg-emerald-400/10 text-emerald-100 shadow-emerald-400/20 shadow-inner'
+                    : 'border-slate-700 text-slate-300 hover:border-slate-500'"
+                  x-text="h.toUpperCase()"
+                  @click="
+                    horizon = h;
+                    if (window.htmx) {
+                      htmx.trigger('#dashboard-root', 'horizonChanged', {detail: {horizon: h}});
+                    }
+                    document.dispatchEvent(new CustomEvent('dashboard:horizon', {detail: {horizon: h}}));
+                  "
+                ></button>
+              </template>
             </div>
-        {% endif %}
-        {% block content %}{% endblock %}
-    </main>
-    <footer class="bg-white border-t border-slate-200 py-4">
-        <div class="max-w-7xl mx-auto px-4 text-sm text-slate-500 flex justify-between">
-            <span>© {% now "Y" %} Arlington TX ODP Crime 365 · MIT License</span>
-            <span>Powered by Django · Tailwind · Chart.js</span>
+          </div>
         </div>
+      </header>
+
+      <div id="dashboard-root" class="flex-1 mx-auto max-w-7xl w-full px-4 sm:px-6 lg:px-8 py-6 grid grid-cols-1 lg:grid-cols-[285px,minmax(0,1fr)] gap-6">
+        <aside class="space-y-6" aria-label="Command filters">
+          {% block sidebar %}
+            {% include "analytics/partials/sidebar_panel.html" %}
+          {% endblock %}
+        </aside>
+
+        <main id="main-panel" class="space-y-6">
+          {% if messages %}
+            <div class="space-y-2">
+              {% for message in messages %}
+                <div class="message-banner {% if message.tags == 'success' %}message-banner-success{% elif message.tags == 'error' %}message-banner-error{% else %}message-banner-default{% endif %}">
+                  {{ message }}
+                </div>
+              {% endfor %}
+            </div>
+          {% endif %}
+          {% block content %}{% endblock %}
+        </main>
+      </div>
+    </div>
+
+    <footer class="border-t border-slate-900/60 bg-slate-950/80">
+      <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-4 text-[0.75rem] text-slate-500 flex flex-wrap items-center justify-between gap-2">
+        <span>&copy; {% now "Y" %} Arlington TX ODP Crime 365 &middot; MIT License</span>
+        <span>Crafted with Django &middot; Tailwind &middot; Chart.js &middot; Cal-Heatmap</span>
+      </div>
     </footer>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-matrix@1.3.0/dist/chartjs-chart-matrix.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/cal-heatmap@4.3.3/dist/cal-heatmap.min.js"></script>
+
+    <script src="{% static 'analytics/js/chart.umd.min.js' %}"></script>
+    <script src="{% static 'analytics/js/chartjs-chart-matrix.min.js' %}"></script>
+    <script src="{% static 'analytics/js/cal-heatmap.min.js' %}"></script>
     <script src="{% static 'analytics/js/dashboard.js' %}"></script>
     {% block scripts %}{% endblock %}
-</body>
+  </body>
 </html>

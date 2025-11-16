@@ -1,15 +1,148 @@
 {% extends "analytics/base.html" %}
 
 {% block content %}
-<section class="card">
-    <p class="text-xs uppercase text-slate-500">{{ stage.title }}</p>
-    <p class="text-lg font-semibold mt-2 mb-4">{{ stage.description }}</p>
-    <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-500 mb-2">Deliverables</h3>
-    <ul class="list-disc pl-5 space-y-1 text-sm text-slate-600 mb-6">
-        {% for item in stage.deliverables %}
-            <li>{{ item }}</li>
-        {% endfor %}
-    </ul>
-    <a href="{% url 'analytics:data_science_lab' %}" class="text-sm text-indigo-600">← Back to Lab</a>
+<section class="hero-panel mb-8">
+  <p class="text-xs uppercase tracking-[0.3em] text-emerald-200">{{ stage.title }}</p>
+  <h2 class="text-3xl font-semibold text-white mt-2">{{ stage.description }}</h2>
+  <p class="text-sm text-slate-300 mt-3">Deliverables</p>
+  <ul class="list-disc pl-5 space-y-1 text-sm text-slate-200 mt-2">
+    {% for item in stage.deliverables %}
+      <li>{{ item }}</li>
+    {% endfor %}
+  </ul>
+  <a href="{% url 'analytics:data_science_lab' %}" class="inline-flex items-center gap-2 text-sm text-emerald-200 mt-4">← Back to Lab Home</a>
 </section>
+
+{% if eda_payload_json %}
+  <section class="grid gap-6 xl:grid-cols-[minmax(0,2fr),minmax(0,1fr)] mb-8">
+    <article class="chart-card space-y-4">
+      <div>
+        <p class="text-xs uppercase tracking-[0.3em] text-slate-500">Stage 1 Diagnostics</p>
+        <h3 class="text-lg font-semibold">Distributions across the current window</h3>
+      </div>
+      <div class="grid gap-6 lg:grid-cols-2">
+        <div>
+          <p class="text-xs text-slate-400 mb-2">Hourly distribution</p>
+          <canvas id="labHourChart" height="220"></canvas>
+        </div>
+        <div>
+          <p class="text-xs text-slate-400 mb-2">Top offense categories</p>
+          <canvas id="labCategoryChart" height="220"></canvas>
+        </div>
+      </div>
+    </article>
+    <article class="chart-card space-y-4">
+      <div>
+        <p class="text-xs uppercase tracking-[0.3em] text-slate-500">District vs Beat</p>
+        <h3 class="text-lg font-semibold">Operational heatmap</h3>
+      </div>
+      <canvas id="labDistrictMatrix" height="360"></canvas>
+    </article>
+  </section>
+{% endif %}
+
+{% if model_chart_json %}
+  <section class="chart-card space-y-5 mb-8">
+    <div>
+      <p class="text-xs uppercase tracking-[0.3em] text-slate-500">Model comparison</p>
+      <h3 class="text-lg font-semibold">Precision / Recall / F1</h3>
+    </div>
+    <canvas id="modelComparisonChart" height="260"></canvas>
+    <div class="overflow-x-auto">
+      <table class="min-w-full text-sm">
+        <thead class="text-slate-500 uppercase tracking-wide text-xs">
+          <tr>
+            <th class="text-left py-2">Model</th>
+            <th class="text-left py-2">Algorithm</th>
+            <th class="text-left py-2">Stage</th>
+            <th class="text-left py-2">Window</th>
+            <th class="text-left py-2">Precision</th>
+            <th class="text-left py-2">Recall</th>
+            <th class="text-left py-2">F1</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for run in model_runs %}
+            <tr class="border-t border-slate-800/60">
+              <td class="py-2 font-semibold text-slate-100">{{ run.model_name }}</td>
+              <td class="py-2 text-slate-300">{{ run.algorithm }}</td>
+              <td class="py-2 text-slate-300">{{ run.stage }}</td>
+              <td class="py-2 text-slate-400">{{ run.training_window|default:"—" }}</td>
+              <td class="py-2">{{ run.precision|default:"—" }}</td>
+              <td class="py-2">{{ run.recall|default:"—" }}</td>
+              <td class="py-2">{{ run.f1|default:"—" }}</td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="7" class="text-center text-slate-500 py-4">Add model runs to compare output.</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+{% endif %}
+
+{% if evaluation_chart_json %}
+  <section class="chart-card space-y-5">
+    <div>
+      <p class="text-xs uppercase tracking-[0.3em] text-slate-500">Evaluation loop</p>
+      <h3 class="text-lg font-semibold">Expected vs observed</h3>
+      <p class="text-sm text-slate-400">{{ evaluation_summary.text }}</p>
+    </div>
+    <canvas id="evaluationChart" height="260"></canvas>
+    <div class="overflow-x-auto">
+      <table class="min-w-full text-sm">
+        <thead class="text-slate-500 uppercase tracking-wide text-xs">
+          <tr>
+            <th class="text-left py-2">Week</th>
+            <th class="text-left py-2">Audience</th>
+            <th class="text-left py-2">Metric</th>
+            <th class="text-left py-2">Expected</th>
+            <th class="text-left py-2">Observed</th>
+            <th class="text-left py-2">Δ %</th>
+            <th class="text-left py-2">Narrative</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for record in evaluation_records %}
+            <tr class="border-t border-slate-800/60">
+              <td class="py-2">{{ record.week_of|date:"Y-m-d" }}</td>
+              <td class="py-2">{{ record.audience }}</td>
+              <td class="py-2">{{ record.metric_name }}</td>
+              <td class="py-2">{{ record.expected_value|default:"—" }}</td>
+              <td class="py-2">{{ record.observed_value|default:"—" }}</td>
+              <td class="py-2 {% if record.delta_pct >= 0 %}text-emerald-300{% else %}text-rose-300{% endif %}">{{ record.delta_pct }}%</td>
+              <td class="py-2 text-slate-400">{{ record.narrative|default:"—" }}</td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="7" class="text-center py-4 text-slate-500">No evaluation metrics yet.</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{{ block.super }}
+{% if eda_payload_json %}
+  {{ eda_payload_json|json_script:"stage-eda-data" }}
+{% endif %}
+{% if model_chart_json %}
+  {{ model_chart_json|json_script:"stage-model-data" }}
+{% endif %}
+{% if evaluation_chart_json %}
+  {{ evaluation_chart_json|json_script:"stage-evaluation-data" }}
+{% endif %}
+<script>
+  CrimeDashboard.initLab({
+    edaPayload: CrimeDashboard.hydrateJsonScript("stage-eda-data"),
+    modelChart: CrimeDashboard.hydrateJsonScript("stage-model-data"),
+    evaluationChart: CrimeDashboard.hydrateJsonScript("stage-evaluation-data"),
+  });
+</script>
 {% endblock %}
