@@ -1,0 +1,36 @@
+databases:
+  - name: arlingtontx_odp_crime_db
+    databaseName: arlingtontx_odp_crime_db
+    plan: free
+
+services:
+  - type: web
+    name: arlingtontx_odp_crime_365d
+    env: python
+    plan: starter
+    buildCommand: |
+      pip install -r requirements.txt
+      python manage.py collectstatic --noinput
+    startCommand: gunicorn crime_dashboard.wsgi:application
+    postDeployCommand: python manage.py migrate
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: arlingtontx_odp_crime_db
+          property: connectionString
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DJANGO_DEBUG
+        value: "False"
+      - key: DJANGO_ALLOWED_HOSTS
+        value: "arlingtontx-odp-crime-365d.onrender.com"
+      - key: DJANGO_CSRF_TRUSTED_ORIGINS
+        value: "https://arlingtontx-odp-crime-365d.onrender.com"
+      - key: ENTRY_PASSCODE
+        value: "welcome"
+      - key: DS_LAB_PASSCODE
+        value: "datascience"
+      - key: IMPORT_PASSCODE
+        value: "changeme"
+      - key: CRIME_DATA_PATH
+        value: "/opt/render/project/src/data/crime_365d.csv"

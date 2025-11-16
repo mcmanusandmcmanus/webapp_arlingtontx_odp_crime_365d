@@ -90,3 +90,13 @@ python manage.py import_incidents --path data/crime_365d.csv --replace
 5. **Render deployment:** add `render.yaml` or Procfile plus environment secrets; enable static builds during deploy.
 
 Stay aligned with the DEV briefs and the roadmap documents to keep every persona (executive, command, field, analyst) delighted through v1.0.0 and beyond.
+
+## Render Deployment
+1. Ensure `render.yaml` exists on `main` (already added) and push your latest code.
+2. In Render, **New + Blueprint** ➜ point to this repo (branch `main`).
+3. Render automatically provisions:
+   - **Web service:** `arlingtontx_odp_crime_365d` (Python env) with build `pip install … && python manage.py collectstatic --noinput`, start `gunicorn crime_dashboard.wsgi:application`, and post deploy `python manage.py migrate`.
+   - **Database:** `arlingtontx_odp_crime_db` (Free Postgres) and injects `DATABASE_URL`.
+4. Adjust environment variables in the Render UI if you need different passcodes or additional secrets (e.g., `DJANGO_SECRET_KEY`, `ENTRY_PASSCODE`, etc.).
+5. Upload the latest `data/crime_365d.csv` to the `/opt/render/project/src/data/` path (Render shell) or ingest via the management command + importer console once deployed.
+6. Trigger a deploy; after the first successful deploy run `python manage.py import_incidents --replace` via Render shell or hook the Import Console to load fresh data.
