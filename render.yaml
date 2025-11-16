@@ -6,14 +6,13 @@ databases:
 services:
   - type: web
     name: arlingtontx_odp_crime_365d
-    env: python
+    runtime: python
     plan: starter
     buildCommand: |
       pip install -r requirements.txt
       python manage.py collectstatic --noinput
-    startCommand: |
-      python manage.py migrate --noinput
-      gunicorn crime_dashboard.wsgi:application
+    preDeployCommand: python manage.py migrate --noinput
+    startCommand: gunicorn crime_dashboard.wsgi:application
     envVars:
       - key: DATABASE_URL
         fromDatabase:
