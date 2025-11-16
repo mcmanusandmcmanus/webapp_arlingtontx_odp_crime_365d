@@ -6,7 +6,7 @@
   </div>
   <div class="pt-4" x-data="{ horizon: '28d' }" x-init="document.addEventListener('dashboard:horizon', (evt) => { horizon = evt.detail.horizon; })">
     <p class="text-[0.65rem] uppercase tracking-[0.3em] text-slate-500 mb-2">Operating horizon</p>
-    <p class="text-xl font-semibold text-emerald-300" x-text="horizon.toUpperCase()"></p>
+    <p class="text-xl font-semibold text-blue-200" x-text="horizon.toUpperCase()"></p>
     <p class="text-xs text-slate-500">Applies to overview heatmaps, anomaly scan, and export queues.</p>
   </div>
 </section>
@@ -41,7 +41,7 @@
         <p class="text-lg font-semibold text-slate-100">{{ data.current|floatformat:0 }}</p>
         <p class="text-xs text-slate-400">
           Prev {{ data.previous|floatformat:0 }}
-          <span class="{% if data.percent_change >= 0 %}text-emerald-300{% else %}text-rose-300{% endif %} font-semibold">
+          <span class="{% if data.percent_change >= 0 %}text-blue-300{% else %}text-rose-300{% endif %} font-semibold">
             {% if data.percent_change >= 0 %}+{% endif %}{{ data.percent_change }}%
           </span>
         </p>

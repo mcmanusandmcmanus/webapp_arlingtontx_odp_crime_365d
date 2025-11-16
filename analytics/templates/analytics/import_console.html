@@ -1,4 +1,4 @@
-{% extends "analytics/base.html" %}
+{% extends "analytics/base_patriot.html" %}
 
 {% block content %}
 <section class="card mb-6">
@@ -34,7 +34,7 @@
             <label class="block text-sm font-semibold">Pasted Rows</label>
             {{ form.pasted_rows }}
         </div>
-        <button class="px-4 py-2 bg-emerald-600 text-white rounded">Parse & Preview</button>
+        <button class="px-4 py-2 bg-blue-600 text-white rounded">Parse & Preview</button>
     </form>
     <p class="text-xs text-slate-500 mt-4">Preview + commit actions will be wired in once file staging endpoints are complete.</p>
 </section>

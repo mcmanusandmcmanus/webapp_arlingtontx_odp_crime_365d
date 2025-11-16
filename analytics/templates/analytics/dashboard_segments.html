@@ -1,4 +1,4 @@
-{% extends "analytics/base.html" %}
+{% extends "analytics/base_patriot.html" %}
 
 {% block content %}
 <section class="card mb-6">
@@ -48,7 +48,7 @@
                         <td class="py-2 font-semibold">{{ row.segment }}</td>
                         <td class="py-2 text-right">{{ row.current_count }}</td>
                         <td class="py-2 text-right">{{ row.previous_count }}</td>
-                        <td class="py-2 text-right {% if row.pct_change >= 0 %}text-emerald-600{% else %}text-rose-600{% endif %}">
+                        <td class="py-2 text-right {% if row.pct_change >= 0 %}text-blue-500{% else %}text-rose-600{% endif %}">
                             {% if row.pct_change >= 0 %}+{% endif %}{{ row.pct_change }}%
                         </td>
                         <td class="py-2 text-right">{{ row.share }}%</td>

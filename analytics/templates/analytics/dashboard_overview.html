@@ -1,4 +1,4 @@
-{% extends "analytics/base.html" %}
+{% extends "analytics/base_patriot.html" %}
 {% load static %}
 
 {% block content %}
@@ -12,7 +12,7 @@
       </p>
     </div>
     <div class="flex flex-wrap gap-3">
-      <a href="{% url 'analytics:dashboard_segments' %}" class="px-5 py-2 rounded-full bg-emerald-400/90 text-slate-900 font-semibold text-sm shadow-lg shadow-emerald-500/30">
+      <a href="{% url 'analytics:dashboard_segments' %}" class="px-5 py-2 rounded-full bg-blue-500 text-white font-semibold text-sm shadow-lg shadow-blue-600/40">
         View Segment Storyboards
       </a>
       <a href="{% url 'analytics:import_console' %}" class="px-5 py-2 rounded-full border border-slate-600 text-sm text-slate-100 hover:border-slate-400 transition">
@@ -99,11 +99,11 @@
         <h2>Window-by-window storyline</h2>
       </div>
     </div>
-    <div class="flex flex-wrap gap-2 mt-4">
-      <template x-for="key in keys" :key="key">
-        <button type="button"
+        <div class="flex flex-wrap gap-2 mt-4">
+          <template x-for="key in keys" :key="key">
+            <button type="button"
                 class="chip"
-                :class="active === key ? 'border-emerald-400 text-emerald-200' : ''"
+                :class="active === key ? 'border-blue-400 text-blue-200' : ''"
                 x-text="key.toUpperCase()"
                 @click="setActive(key)"></button>
       </template>

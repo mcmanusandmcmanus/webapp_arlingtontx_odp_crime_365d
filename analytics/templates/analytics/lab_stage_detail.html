@@ -1,8 +1,8 @@
-{% extends "analytics/base.html" %}
+{% extends "analytics/base_patriot.html" %}
 
 {% block content %}
 <section class="hero-panel mb-8">
-  <p class="text-xs uppercase tracking-[0.3em] text-emerald-200">{{ stage.title }}</p>
+<p class="text-xs uppercase tracking-[0.3em] text-blue-200">{{ stage.title }}</p>
   <h2 class="text-3xl font-semibold text-white mt-2">{{ stage.description }}</h2>
   <p class="text-sm text-slate-300 mt-3">Deliverables</p>
   <ul class="list-disc pl-5 space-y-1 text-sm text-slate-200 mt-2">
@@ -10,7 +10,7 @@
       <li>{{ item }}</li>
     {% endfor %}
   </ul>
-  <a href="{% url 'analytics:data_science_lab' %}" class="inline-flex items-center gap-2 text-sm text-emerald-200 mt-4">← Back to Lab Home</a>
+  <a href="{% url 'analytics:data_science_lab' %}" class="inline-flex items-center gap-2 text-sm text-blue-200 mt-4">← Back to Lab Home</a>
 </section>
 
 {% if eda_payload_json %}
@@ -112,7 +112,7 @@
               <td class="py-2">{{ record.metric_name }}</td>
               <td class="py-2">{{ record.expected_value|default:"—" }}</td>
               <td class="py-2">{{ record.observed_value|default:"—" }}</td>
-              <td class="py-2 {% if record.delta_pct >= 0 %}text-emerald-300{% else %}text-rose-300{% endif %}">{{ record.delta_pct }}%</td>
+              <td class="py-2 {% if record.delta_pct >= 0 %}text-blue-300{% else %}text-rose-300{% endif %}">{{ record.delta_pct }}%</td>
               <td class="py-2 text-slate-400">{{ record.narrative|default:"—" }}</td>
             </tr>
           {% empty %}

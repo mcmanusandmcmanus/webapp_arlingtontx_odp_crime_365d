@@ -1,10 +1,10 @@
-{% extends "analytics/base.html" %}
+{% extends "analytics/base_patriot.html" %}
 {% load static %}
 
 {% block content %}
 <section class="hero-panel mb-8 grid gap-6 lg:grid-cols-[minmax(0,2fr),minmax(0,1fr)]">
   <div>
-    <p class="text-xs uppercase tracking-[0.3em] text-emerald-200">Data Science Lab</p>
+    <p class="text-xs uppercase tracking-[0.3em] text-blue-200">Data Science Lab</p>
     <h2 class="text-3xl font-semibold text-white mt-2">Full-stack crime analytics lifecycle</h2>
     <p class="text-slate-200 text-lg mt-3">
       Stage-by-stage rigor from exploratory diagnostics to champion model evaluation.
@@ -160,7 +160,7 @@
           {% endfor %}
         </select>
       </label>
-      <button type="submit" class="px-4 py-1 rounded-full border border-emerald-400 text-emerald-200 hover:bg-emerald-400/10">Apply</button>
+      <button type="submit" class="px-4 py-1 rounded-full border border-blue-400 text-blue-200 hover:bg-blue-500/10">Apply</button>
     </form>
   </div>
   <canvas id="evaluationChart" height="260"></canvas>
@@ -185,7 +185,7 @@
             <td class="py-2">{{ record.metric_name }}</td>
             <td class="py-2">{{ record.expected_value|default:"—" }}</td>
             <td class="py-2">{{ record.observed_value|default:"—" }}</td>
-            <td class="py-2 {% if record.delta_pct >= 0 %}text-emerald-300{% else %}text-rose-300{% endif %}">{{ record.delta_pct }}%</td>
+            <td class="py-2 {% if record.delta_pct >= 0 %}text-blue-300{% else %}text-rose-300{% endif %}">{{ record.delta_pct }}%</td>
             <td class="py-2 text-slate-400">{{ record.narrative|default:"—" }}</td>
           </tr>
         {% empty %}
