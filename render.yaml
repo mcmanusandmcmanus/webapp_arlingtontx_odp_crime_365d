@@ -11,8 +11,9 @@ services:
     buildCommand: |
       pip install -r requirements.txt
       python manage.py collectstatic --noinput
-    startCommand: gunicorn crime_dashboard.wsgi:application
-    postDeployCommand: python manage.py migrate
+    startCommand: |
+      python manage.py migrate --noinput
+      gunicorn crime_dashboard.wsgi:application
     envVars:
       - key: DATABASE_URL
         fromDatabase:

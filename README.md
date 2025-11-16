@@ -96,6 +96,7 @@ Stay aligned with the DEV briefs and the roadmap documents to keep every persona
 2. In Render, **New + Blueprint** ➜ point to this repo (branch `main`).
 3. Render automatically provisions:
    - **Web service:** `arlingtontx_odp_crime_365d` (Python env) with build `pip install … && python manage.py collectstatic --noinput`, start `gunicorn crime_dashboard.wsgi:application`, and post deploy `python manage.py migrate`.
+   - *Note*: Because Render Blueprints don’t support `postDeployCommand`, the start command runs migrations before Gunicorn (`python manage.py migrate --noinput && gunicorn …`). This ensures schema updates apply on every deploy.
    - **Database:** `arlingtontx_odp_crime_db` (Free Postgres) and injects `DATABASE_URL`.
 4. Adjust environment variables in the Render UI if you need different passcodes or additional secrets (e.g., `DJANGO_SECRET_KEY`, `ENTRY_PASSCODE`, etc.).
 5. Upload the latest `data/crime_365d.csv` to the `/opt/render/project/src/data/` path (Render shell) or ingest via the management command + importer console once deployed.
