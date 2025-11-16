@@ -1,19 +1,16 @@
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
-from typing import Dict
 
 from django.conf import settings
 from django.contrib import messages
 from django.db.models import Count
-from django.http import HttpRequest, HttpResponse
-from django.shortcuts import get_object_or_404, redirect, render
-from django.urls import reverse
+from django.http import HttpRequest, HttpResponse, JsonResponse
+from django.shortcuts import redirect, render
 
 from . import forms
 from .models import EvaluationMetric, Incident, ModelRun
-from .services import baseline, segmentation, time_windows
+from .services import baseline, segmentation, time_windows, heatmaps
 
 ENTRY_SESSION_KEY = "entry_passcode_verified"
 LAB_SESSION_KEY = "lab_passcode_verified"
@@ -67,6 +64,12 @@ def _require_entry_access(request: HttpRequest) -> HttpResponse | None:
     return None
 
 
+def _api_guard(request: HttpRequest) -> JsonResponse | None:
+    if not request.session.get(ENTRY_SESSION_KEY):
+        return JsonResponse({"detail": "Entry gate required."}, status=403)
+    return None
+
+
 def entry_gate(request: HttpRequest) -> HttpResponse:
     form = forms.PasscodeForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
@@ -90,13 +93,15 @@ def dashboard_overview(request: HttpRequest) -> HttpResponse:
     window_summary = time_windows.compute_window_counts()
     chart_payload = time_windows.summarize_windows_for_chart(window_keys)
     kpi_cards = baseline.build_kpi_cards()
+    calendar_payload = heatmaps.calendar_heatmap_data(heat_type="count")
+    hourly_matrix = heatmaps.twenty_four_by_seven("28d")
     context = {
         "page_title": "Executive Overview",
         "window_summary": window_summary,
         "chart_payload": json.dumps(chart_payload),
         "kpi_cards": kpi_cards,
-        "calendar_payload": json.dumps(segmentation.get_calendar_heatmap("365d")),
-        "hourly_matrix": json.dumps(segmentation.get_hourly_matrix("28d")),
+        "calendar_payload": json.dumps(calendar_payload),
+        "hourly_matrix": json.dumps(hourly_matrix),
     }
     return render(request, "analytics/dashboard_overview.html", context)
 
@@ -247,3 +252,39 @@ def import_console(request: HttpRequest) -> HttpResponse:
         ],
     }
     return render(request, "analytics/import_console.html", context)
+
+
+def calendar_heatmap_api(request: HttpRequest) -> JsonResponse:
+    guard = _api_guard(request)
+    if guard:
+        return guard
+    heat_type = request.GET.get("heat_type", "count")
+    if heat_type not in {"count", "z_daily", "pct_group", "weekday_delta"}:
+        return JsonResponse({"detail": "Invalid heat_type."}, status=400)
+    group_filter = request.GET.get("group")
+    payload = heatmaps.calendar_heatmap_data(heat_type=heat_type, group_filter=group_filter)
+    return JsonResponse(payload)
+
+
+def heatmap_24x7_api(request: HttpRequest) -> JsonResponse:
+    guard = _api_guard(request)
+    if guard:
+        return guard
+    window_key = request.GET.get("window", "365d")
+    payload = heatmaps.twenty_four_by_seven(window_key)
+    return JsonResponse(payload)
+
+
+def poisson_heatmap_api(request: HttpRequest) -> JsonResponse:
+    guard = _api_guard(request)
+    if guard:
+        return guard
+    try:
+        window_length = int(request.GET.get("window_length", 28))
+    except ValueError:
+        return JsonResponse({"detail": "window_length must be an integer."}, status=400)
+    unit = request.GET.get("unit", "beat")
+    if unit not in {"beat", "district"}:
+        return JsonResponse({"detail": "unit must be 'beat' or 'district'."}, status=400)
+    payload = heatmaps.poisson_z_heatmap(window_length=window_length, unit=unit)
+    return JsonResponse(payload)
