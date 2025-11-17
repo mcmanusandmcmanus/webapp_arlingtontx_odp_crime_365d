@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 from typing import Dict
 
 from django.conf import settings
@@ -8,6 +9,7 @@ from django.contrib import messages
 from django.db.models import Count
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import redirect, render
+from django.core.management import call_command
 
 from . import forms
 from .models import EvaluationMetric, Incident, ModelRun
@@ -289,6 +291,32 @@ def import_console(request: HttpRequest) -> HttpResponse:
         ],
     }
     return render(request, "analytics/import_console.html", context)
+
+
+def seed_sample_data(request: HttpRequest) -> HttpResponse:
+    gate = _require_entry_access(request)
+    if gate:
+        return gate
+    data_path = Path(settings.BASE_DIR) / "data" / "crime_365d.csv"
+    if request.method == "POST":
+        if not data_path.exists():
+            messages.error(request, f"Sample file not found at {data_path}")
+        else:
+            try:
+                call_command("import_incidents", path=str(data_path))
+                messages.success(
+                    request,
+                    "Sample dataset imported successfully. Refresh the dashboards to view the updates.",
+                )
+                return redirect("analytics:seed_sample_data")
+            except Exception as exc:  # pragma: no cover
+                messages.error(request, f"Import failed: {exc}")
+    context = {
+        "page_title": "Quick Data Seed",
+        "data_path": data_path,
+        "file_exists": data_path.exists(),
+    }
+    return render(request, "analytics/seed_data.html", context)
 
 
 def calendar_heatmap_api(request: HttpRequest) -> JsonResponse:

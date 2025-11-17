@@ -1,0 +1,42 @@
+{% extends "analytics/base.html" %}
+
+{% block content %}
+<section class="hero-panel mb-6">
+  <p class="text-xs uppercase tracking-[0.3em] text-blue-200">Data Admin</p>
+  <h2 class="text-3xl font-semibold text-white mt-2">Quick Sample Data Seed</h2>
+  <p class="text-slate-300 text-base mt-2">
+    Use this tool to load the bundled <code>crime_365d.csv</code> dataset without running the full import console workflow.
+    Ideal for demos or resetting the experience when you need data fast.
+  </p>
+</section>
+
+{% if messages %}
+  <div class="space-y-2 mb-4">
+    {% for message in messages %}
+      <div class="message-banner {% if message.tags == 'success' %}message-banner-success{% elif message.tags == 'error' %}message-banner-error{% else %}message-banner-default{% endif %}">
+        {{ message }}
+      </div>
+    {% endfor %}
+  </div>
+{% endif %}
+
+<section class="chart-card space-y-4">
+  <div>
+    <h3 class="text-lg font-semibold text-white">Sample dataset</h3>
+    <p class="text-sm text-slate-400">Path: {{ data_path }}</p>
+    {% if not file_exists %}
+      <p class="text-sm text-rose-300 mt-1">File not found. Upload <code>crime_365d.csv</code> to the <code>data/</code> directory.</p>
+    {% endif %}
+  </div>
+  <form method="post" class="space-y-4">
+    {% csrf_token %}
+    <p class="text-sm text-slate-400">
+      Pressing the button below will run <code>python manage.py import_incidents --path {{ data_path }}</code> on the server.
+      Existing data for overlapping dates will be replaced per the importer rules.
+    </p>
+    <button type="submit" class="px-5 py-2 rounded-full bg-blue-600 text-white font-semibold disabled:opacity-50" {% if not file_exists %}disabled{% endif %}>
+      Seed Sample Data
+    </button>
+  </form>
+</section>
+{% endblock %}
