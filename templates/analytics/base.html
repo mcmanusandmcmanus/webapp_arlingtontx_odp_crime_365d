@@ -12,7 +12,6 @@
 
     <link rel="stylesheet" href="{% static 'analytics/css/cal-heatmap.min.css' %}">
     <link rel="stylesheet" href="{% static 'analytics/css/app.css' %}">
-    <link rel="stylesheet" href="{% static 'analytics/css/app_patriot.css' %}">
     {% block extra_head %}{% endblock %}
   </head>
   <body class="bg-slate-950 text-slate-50 antialiased selection:bg-blue-500/30">
@@ -75,7 +74,7 @@
       <div id="dashboard-root" class="flex-1 mx-auto max-w-7xl w-full px-4 sm:px-6 lg:px-8 py-6 grid grid-cols-1 lg:grid-cols-[285px,minmax(0,1fr)] gap-6">
         <aside class="space-y-6" aria-label="Command filters">
           {% block sidebar %}
-            {% include "analytics/partials/sidebar_panel_patriot.html" %}
+            {% include "analytics/partials/sidebar_panel.html" %}
           {% endblock %}
         </aside>
 
